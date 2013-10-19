@@ -281,6 +281,8 @@ private:
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
+	bool		_accel_warned;
+
 	struct {
 		float min[_rc_max_chan_count];
 		float trim[_rc_max_chan_count];
@@ -529,7 +531,8 @@ Sensors::Sensors() :
 
 	_board_rotation(3, 3),
 	_external_mag_rotation(3, 3),
-	_mag_is_external(false)
+	_mag_is_external(false),
+	_accel_warned(false)
 {
 
 	/* basic r/c parameters */
@@ -996,6 +999,10 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		if (accel_report.x_raw == -32760 && accel_report.y_raw == -32760 && accel_report.z_raw == -32760) {
+			if (_accel_warned == false) {
+				warnx("ACCELFAIL");
+				_accel_warned = true;
+			}
 			return;
 		}
 #endif
