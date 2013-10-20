@@ -168,7 +168,7 @@ static const int ERROR = -1;
 #define REG6_FULL_SCALE_12GA_M		((1<<6) | (1<<5))
 
 #define REG7_CONT_MODE_M		((0<<1) | (0<<0))
-
+#define REG7_POWER_OFF_M		((1<<1) | (1<<0))
 
 #define INT_CTRL_M			0x12
 #define INT_SRC_M			0x13
@@ -249,6 +249,11 @@ private:
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
+
+	unsigned		_device_errors;
+
+	uint8_t			_reg1_needed;
+	uint8_t			_reg7_needed;
 
 	/**
 	 * Start automatic measurement.
@@ -440,7 +445,10 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ)
+	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_device_errors(0),
+	_reg1_needed(0),
+	_reg7_needed(0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -529,11 +537,13 @@ out:
 void
 LSM303D::reset()
 {
+	_reg1_needed = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE;
 	/* enable accel*/
-	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
+	write_reg(ADDR_CTRL_REG1, _reg1_needed);
 
 	/* enable mag */
-	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
+	_reg7_needed = REG7_CONT_MODE_M;
+	write_reg(ADDR_CTRL_REG7, _reg7_needed);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
@@ -1137,6 +1147,7 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	}
 
 	modify_reg(ADDR_CTRL_REG1, clearbits, setbits);
+	_reg1_needed |= setbits;
 
 	return OK;
 }
@@ -1214,138 +1225,162 @@ LSM303D::mag_measure_trampoline(void *arg)
 void
 LSM303D::measure()
 {
-	/* status register and data as read back from the device */
+	uint8_t reg_ctrl1 = read_reg(ADDR_CTRL_REG1);
+
+	if (reg_ctrl1 ^ _reg1_needed) {
+
+		_device_errors++;
+		/* reseting the device should bring it back */
+		reset();
+
+	} else {
+
+		/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
-	struct {
-		uint8_t		cmd;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
-	} raw_accel_report;
+		struct {
+			uint8_t		cmd;
+			uint8_t		status;
+			int16_t		x;
+			int16_t		y;
+			int16_t		z;
+		} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report;
+		accel_report accel_report;
 
-	/* start the performance counter */
-	perf_begin(_accel_sample_perf);
+		/* start the performance counter */
+		perf_begin(_accel_sample_perf);
 
-	/* fetch data from the sensor */
-	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
-	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
+		/* fetch data from the sensor */
+		raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
+		transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
-	 */
+		/*
+		 * 1) Scale raw value to SI units using scaling from datasheet.
+		 * 2) Subtract static offset (in SI units)
+		 * 3) Scale the statically calibrated values with a linear
+		 *    dynamically obtained factor
+		 *
+		 * Note: the static sensor offset is the number the sensor outputs
+		 * 	 at a nominally 'zero' input. Therefore the offset has to
+		 * 	 be subtracted.
+		 *
+		 *	 Example: A gyro outputs a value of 74 at zero angular rate
+		 *	 	  the offset is 74 from the origin and subtracting
+		 *		  74 from all measurements centers them around zero.
+		 */
 
 
-	accel_report.timestamp = hrt_absolute_time();
-        accel_report.error_count = 0; // not reported
+		accel_report.timestamp = hrt_absolute_time();
+		accel_report.error_count = 0; // not reported
 
-	accel_report.x_raw = raw_accel_report.x;
-	accel_report.y_raw = raw_accel_report.y;
-	accel_report.z_raw = raw_accel_report.z;
+		accel_report.x_raw = raw_accel_report.x;
+		accel_report.y_raw = raw_accel_report.y;
+		accel_report.z_raw = raw_accel_report.z;
 
-	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+		float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+		float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+		float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	accel_report.x = _accel_filter_x.apply(x_in_new);
-	accel_report.y = _accel_filter_y.apply(y_in_new);
-	accel_report.z = _accel_filter_z.apply(z_in_new);
+		accel_report.x = _accel_filter_x.apply(x_in_new);
+		accel_report.y = _accel_filter_y.apply(y_in_new);
+		accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	accel_report.scaling = _accel_range_scale;
-	accel_report.range_m_s2 = _accel_range_m_s2;
+		accel_report.scaling = _accel_range_scale;
+		accel_report.range_m_s2 = _accel_range_m_s2;
 
-	_accel_reports->force(&accel_report);
+		_accel_reports->force(&accel_report);
 
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+		/* notify anyone waiting for data */
+		poll_notify(POLLIN);
 
-	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+		/* publish for subscribers */
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 
-	_accel_read++;
+		_accel_read++;
 
-	/* stop the perf counter */
-	perf_end(_accel_sample_perf);
+		/* stop the perf counter */
+		perf_end(_accel_sample_perf);
+	}
 }
 
 void
 LSM303D::mag_measure()
 {
-	/* status register and data as read back from the device */
+	/* make sure the mag did no accidentally enter power down mode*/
+	uint8_t reg_ctrl7 = read_reg(ADDR_CTRL_REG7);
+
+	if (reg_ctrl7 ^ _reg7_needed) {
+
+		_device_errors++;
+		/* reseting the device should bring it back */
+		reset();
+
+	} else {
+
+
+		/* status register and data as read back from the device */
 #pragma pack(push, 1)
-	struct {
-		uint8_t		cmd;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
-	} raw_mag_report;
+		struct {
+			uint8_t		cmd;
+			uint8_t		status;
+			int16_t		x;
+			int16_t		y;
+			int16_t		z;
+		} raw_mag_report;
 #pragma pack(pop)
 
-	mag_report mag_report;
+		mag_report mag_report;
 
-	/* start the performance counter */
-	perf_begin(_mag_sample_perf);
+		/* start the performance counter */
+		perf_begin(_mag_sample_perf);
 
-	/* fetch data from the sensor */
-	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
-	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
+		/* fetch data from the sensor */
+		raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
+		transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
-	 */
+		/*
+		 * 1) Scale raw value to SI units using scaling from datasheet.
+		 * 2) Subtract static offset (in SI units)
+		 * 3) Scale the statically calibrated values with a linear
+		 *    dynamically obtained factor
+		 *
+		 * Note: the static sensor offset is the number the sensor outputs
+		 * 	 at a nominally 'zero' input. Therefore the offset has to
+		 * 	 be subtracted.
+		 *
+		 *	 Example: A gyro outputs a value of 74 at zero angular rate
+		 *	 	  the offset is 74 from the origin and subtracting
+		 *		  74 from all measurements centers them around zero.
+		 */
 
 
-	mag_report.timestamp = hrt_absolute_time();
+		mag_report.timestamp = hrt_absolute_time();
 
-	mag_report.x_raw = raw_mag_report.x;
-	mag_report.y_raw = raw_mag_report.y;
-	mag_report.z_raw = raw_mag_report.z;
-	mag_report.x = ((mag_report.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mag_report.y = ((mag_report.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mag_report.scaling = _mag_range_scale;
-	mag_report.range_ga = (float)_mag_range_ga;
+		mag_report.x_raw = raw_mag_report.x;
+		mag_report.y_raw = raw_mag_report.y;
+		mag_report.z_raw = raw_mag_report.z;
+		mag_report.x = ((mag_report.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+		mag_report.y = ((mag_report.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+		mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+		mag_report.scaling = _mag_range_scale;
+		mag_report.range_ga = (float)_mag_range_ga;
 
-	_mag_reports->force(&mag_report);
+		_mag_reports->force(&mag_report);
 
-	/* XXX please check this poll_notify, is it the right one? */
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+		/* XXX please check this poll_notify, is it the right one? */
+		/* notify anyone waiting for data */
+		poll_notify(POLLIN);
 
-	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
+		/* publish for subscribers */
+		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 
-	_mag_read++;
+		_mag_read++;
 
-	/* stop the perf counter */
-	perf_end(_mag_sample_perf);
+		/* stop the perf counter */
+		perf_end(_mag_sample_perf);
+	}
 }
 
 void
