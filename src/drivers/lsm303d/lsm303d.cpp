@@ -84,8 +84,8 @@ static const int ERROR = -1;
 #define ADDR_WHO_AM_I			0x0F
 #define WHO_I_AM				0x49
 
-#define ADDR_OUT_L_T         	0x05
-#define ADDR_OUT_H_T        	0x06
+#define ADDR_OUT_TEMP_L		0x05
+#define ADDR_OUT_TEMP_H		0x05
 #define ADDR_STATUS_M           0x07
 #define ADDR_OUT_X_L_M          0x08
 #define ADDR_OUT_X_H_M          0x09
@@ -94,7 +94,7 @@ static const int ERROR = -1;
 #define ADDR_OUT_Z_L_M          0x0C
 #define ADDR_OUT_Z_H_M          0x0D
 
-#define ADDR_OUT_TEMP_A			0x26
+
 #define ADDR_STATUS_A			0x27
 #define ADDR_OUT_X_L_A			0x28
 #define ADDR_OUT_X_H_A			0x29
