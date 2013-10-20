@@ -74,26 +74,30 @@
 static const int ERROR = -1;
 
 /* SPI protocol address bits */
-#define DIR_READ				(1<<7)
-#define DIR_WRITE				(0<<7)
+#define DIR_READ			(1<<7)
+#define DIR_WRITE			(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
 
 
-/* register addresses: A: accel, M: mag, T: temp */
+/*
+ * register addresses:
+ * A: accel,
+ * M: mag
+ */
+
 #define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM				0x49
+#define WHO_I_AM			0x49
 
-#define ADDR_OUT_TEMP_L		0x05
-#define ADDR_OUT_TEMP_H		0x05
-#define ADDR_STATUS_M           0x07
-#define ADDR_OUT_X_L_M          0x08
-#define ADDR_OUT_X_H_M          0x09
-#define ADDR_OUT_Y_L_M          0x0A
-#define ADDR_OUT_Y_H_M          0x0B
-#define ADDR_OUT_Z_L_M          0x0C
-#define ADDR_OUT_Z_H_M          0x0D
-
+#define ADDR_OUT_TEMP_L			0x05
+#define ADDR_OUT_TEMP_H			0x05
+#define ADDR_STATUS_M			0x07
+#define ADDR_OUT_X_L_M          	0x08
+#define ADDR_OUT_X_H_M          	0x09
+#define ADDR_OUT_Y_L_M          	0x0A
+#define ADDR_OUT_Y_H_M			0x0B
+#define ADDR_OUT_Z_L_M			0x0C
+#define ADDR_OUT_Z_H_M			0x0D
 
 #define ADDR_STATUS_A			0x27
 #define ADDR_OUT_X_L_A			0x28
@@ -131,17 +135,17 @@ static const int ERROR = -1;
 #define REG1_X_ENABLE_A			(1<<0)
 
 #define REG2_ANTIALIAS_FILTER_BW_BITS_A	((1<<7) | (1<<6))
-#define REG2_AA_FILTER_BW_773HZ_A		((0<<7) | (0<<6))
-#define REG2_AA_FILTER_BW_194HZ_A		((0<<7) | (1<<6))
-#define REG2_AA_FILTER_BW_362HZ_A		((1<<7) | (0<<6))
-#define REG2_AA_FILTER_BW_50HZ_A		((1<<7) | (1<<6))
+#define REG2_AA_FILTER_BW_773HZ_A	((0<<7) | (0<<6))
+#define REG2_AA_FILTER_BW_194HZ_A	((0<<7) | (1<<6))
+#define REG2_AA_FILTER_BW_362HZ_A	((1<<7) | (0<<6))
+#define REG2_AA_FILTER_BW_50HZ_A	((1<<7) | (1<<6))
 
-#define REG2_FULL_SCALE_BITS_A	((1<<5) | (1<<4) | (1<<3))
-#define REG2_FULL_SCALE_2G_A	((0<<5) | (0<<4) | (0<<3))
-#define REG2_FULL_SCALE_4G_A	((0<<5) | (0<<4) | (1<<3))
-#define REG2_FULL_SCALE_6G_A	((0<<5) | (1<<4) | (0<<3))
-#define REG2_FULL_SCALE_8G_A	((0<<5) | (1<<4) | (1<<3))
-#define REG2_FULL_SCALE_16G_A	((1<<5) | (0<<4) | (0<<3))
+#define REG2_FULL_SCALE_BITS_A		((1<<5) | (1<<4) | (1<<3))
+#define REG2_FULL_SCALE_2G_A		((0<<5) | (0<<4) | (0<<3))
+#define REG2_FULL_SCALE_4G_A		((0<<5) | (0<<4) | (1<<3))
+#define REG2_FULL_SCALE_6G_A		((0<<5) | (1<<4) | (0<<3))
+#define REG2_FULL_SCALE_8G_A		((0<<5) | (1<<4) | (1<<3))
+#define REG2_FULL_SCALE_16G_A		((1<<5) | (0<<4) | (0<<3))
 
 #define REG5_ENABLE_T			(1<<7)
 
@@ -155,19 +159,19 @@ static const int ERROR = -1;
 #define REG5_RATE_25HZ_M		((0<<4) | (1<<3) | (1<<2))
 #define REG5_RATE_50HZ_M		((1<<4) | (0<<3) | (0<<2))
 #define REG5_RATE_100HZ_M		((1<<4) | (0<<3) | (1<<2))
-#define REG5_RATE_DO_NOT_USE_M	((1<<4) | (1<<3) | (0<<2))
+#define REG5_RATE_DO_NOT_USE_M		((1<<4) | (1<<3) | (0<<2))
 
-#define REG6_FULL_SCALE_BITS_M	((1<<6) | (1<<5))
-#define REG6_FULL_SCALE_2GA_M	((0<<6) | (0<<5))
-#define REG6_FULL_SCALE_4GA_M	((0<<6) | (1<<5))
-#define REG6_FULL_SCALE_8GA_M	((1<<6) | (0<<5))
-#define REG6_FULL_SCALE_12GA_M	((1<<6) | (1<<5))
+#define REG6_FULL_SCALE_BITS_M		((1<<6) | (1<<5))
+#define REG6_FULL_SCALE_2GA_M		((0<<6) | (0<<5))
+#define REG6_FULL_SCALE_4GA_M		((0<<6) | (1<<5))
+#define REG6_FULL_SCALE_8GA_M		((1<<6) | (0<<5))
+#define REG6_FULL_SCALE_12GA_M		((1<<6) | (1<<5))
 
 #define REG7_CONT_MODE_M		((0<<1) | (0<<0))
 
 
-#define INT_CTRL_M              0x12
-#define INT_SRC_M               0x13
+#define INT_CTRL_M			0x12
+#define INT_SRC_M			0x13
 
 /* default values for this device */
 #define LSM303D_ACCEL_DEFAULT_RANGE_G			8
