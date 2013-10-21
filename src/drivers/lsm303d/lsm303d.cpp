@@ -537,22 +537,36 @@ out:
 void
 LSM303D::reset()
 {
-	_reg1_needed = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE;
+	up_udelay(200000);
+
+	_reg1_needed = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
+	_accel_samplerate = 800;
+
+
 	/* enable accel*/
 	write_reg(ADDR_CTRL_REG1, _reg1_needed);
 
 	/* enable mag */
-	_reg7_needed = REG7_CONT_MODE_M;
-	write_reg(ADDR_CTRL_REG7, _reg7_needed);
-	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+//	_reg7_needed = REG7_CONT_MODE_M;
+//	write_reg(ADDR_CTRL_REG7, _reg7_needed);
+
+//	up_udelay(5000);
+//	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
-	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
+
+//	up_udelay(5000);
+//	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
+
 	accel_set_driver_lowpass_filter((float)LSM303D_ACCEL_DEFAULT_RATE, (float)LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
 	accel_set_onchip_lowpass_filter_bandwidth(LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
 
-	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
-	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
+//	up_udelay(5000);
+//	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
+
+//	up_udelay(5000);
+//	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
+
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -1219,7 +1233,7 @@ LSM303D::mag_measure_trampoline(void *arg)
 	LSM303D *dev = (LSM303D *)arg;
 
 	/* make another measurement */
-	dev->mag_measure();
+//	dev->mag_measure();
 }
 
 void
