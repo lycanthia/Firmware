@@ -273,6 +273,8 @@ private:
 	perf_counter_t		_mag_sample_perf;
 	perf_counter_t		_reg7_resets;
 	perf_counter_t		_reg1_resets;
+	perf_counter_t		_value_extremes;
+	uint64_t                _last_value_extremes;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -452,7 +454,7 @@ private:
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
-	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
+	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8*1000*1000),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
 	_call_mag_interval(0),
@@ -473,6 +475,8 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
 	_reg1_resets(perf_alloc(PC_COUNT, "lsm303d_reg1_resets")),
 	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
+	_value_extremes(perf_alloc(PC_COUNT, "lsm303d_extremes")),
+	_last_value_extremes(0),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -612,6 +616,11 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	/* buffer must be large enough */
 	if (count < 1)
 		return -ENOSPC;
+
+	if (_last_value_extremes != perf_event_count(_value_extremes)) {
+		_last_value_extremes = perf_event_count(_value_extremes);
+		print_registers();
+	}
 
 	/* if automatic measurement is enabled */
 	if (_call_accel_interval > 0) {
@@ -1307,6 +1316,12 @@ LSM303D::measure()
 	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
+        if (fabs(x_in_new) > 30 ||
+            fabs(y_in_new) > 30 ||
+            fabs(z_in_new) > 30) {
+            perf_count(_value_extremes);
+        }
 
 	accel_report.x = _accel_filter_x.apply(x_in_new);
 	accel_report.y = _accel_filter_y.apply(y_in_new);
