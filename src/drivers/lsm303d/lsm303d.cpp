@@ -280,6 +280,7 @@ private:
 	perf_counter_t		_reg1_resets;
 	perf_counter_t		_value_extremes;
 	uint64_t                _last_value_extremes;
+	uint64_t		_last_time_extremes;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -482,6 +483,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
 	_value_extremes(perf_alloc(PC_COUNT, "lsm303d_extremes")),
 	_last_value_extremes(0),
+	_last_time_extremes(0),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -622,8 +624,10 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	if (count < 1)
 		return -ENOSPC;
 
-	if (_last_value_extremes != perf_event_count(_value_extremes)) {
+	if (_last_value_extremes != perf_event_count(_value_extremes) &&
+	    (hrt_absolute_time() - _last_time_extremes) > 5*1000*1000) {
 		_last_value_extremes = perf_event_count(_value_extremes);
+		_last_time_extremes = hrt_absolute_time();
 		print_registers();
 	}
 
