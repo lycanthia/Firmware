@@ -231,6 +231,11 @@ public:
 	 */
 	void			print_registers();
 
+	/**
+	 * toggle accel selftest
+	 */
+	void			toggle_selftest();
+
 protected:
 	virtual int		probe();
 
@@ -1482,6 +1487,14 @@ LSM303D::print_registers()
 	printf("_reg7_expected=0x%02x\n", _reg7_expected);
 }
 
+void
+LSM303D::toggle_selftest()
+{
+	uint8_t reg2 = read_reg(ADDR_CTRL_REG2) ^ 2;
+	write_reg(ADDR_CTRL_REG2, reg2);
+	printf("Selftest now %s\n", reg2 & 2?"on":"off");
+}
+
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", MAG_DEVICE_PATH),
 	_parent(parent)
@@ -1535,6 +1548,7 @@ void	test();
 void	reset();
 void	info();
 void	regdump();
+void	selftest();
 
 /**
  * Start the driver.
@@ -1721,6 +1735,20 @@ regdump()
 	exit(0);
 }
 
+/**
+ * put accel into/out-of selftest
+ */
+void
+selftest()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	g_dev->toggle_selftest();
+
+	exit(0);
+}
+
 
 } // namespace
 
@@ -1758,5 +1786,11 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "regdump"))
 		lsm303d::regdump();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	/*
+	 * dump device registers
+	 */
+	if (!strcmp(argv[1], "selftest"))
+		lsm303d::selftest();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'selftest' or 'regdump'");
 }
