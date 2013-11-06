@@ -236,6 +236,8 @@ public:
 	 */
 	void			toggle_selftest();
 
+	bool			has_failed() { return (_last_value_extremes > 0); }
+
 protected:
 	virtual int		probe();
 
@@ -1753,6 +1755,18 @@ selftest()
 	exit(0);
 }
 
+void
+guardian()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	while (!g_dev->has_failed())
+		usleep(50000);
+
+	errx(1, "sensor fail detected");
+}
+
 
 } // namespace
 
@@ -1795,6 +1809,12 @@ lsm303d_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "selftest"))
 		lsm303d::selftest();
+
+	/*
+	 * run a long term test
+	 */
+	if (!strcmp(argv[1], "guardian"))
+		lsm303d::guardian();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'selftest' or 'regdump'");
 }
