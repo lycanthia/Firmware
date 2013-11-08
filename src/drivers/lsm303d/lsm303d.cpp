@@ -236,7 +236,7 @@ public:
 	 */
 	void			toggle_selftest();
 
-	bool			has_failed() { return (_last_value_extremes > 0); }
+	bool			has_failed() { return (_last_value_extremes > 5); }
 
 protected:
 	virtual int		probe();
@@ -1769,7 +1769,6 @@ guardian()
 
 	g_dev->print_registers();
 	g_dev->print_info();
-	test();
 
 	errx(1, "sensor fail detected");
 }
