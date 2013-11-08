@@ -9,7 +9,7 @@ tone_alarm start
 echo "LSM303D validation firmware"
 lsm303d start
 rgbled start
-rgbled rgb 30 255 30
+rgbled rgb 0 50 0
 if lsm303d guardian
 then
 	echo "Guardian exited without error. (Impossible!)"
@@ -17,5 +17,5 @@ else
 	echo "LSM303D error!"
 	# Play SOS
 	tone_alarm error
-	rgbled rgb 255 30 30
+	rgbled rgb 50 0 0
 fi

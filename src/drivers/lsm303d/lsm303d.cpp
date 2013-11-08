@@ -632,6 +632,7 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		_last_time_extremes = hrt_absolute_time();
 		print_registers();
 	}
+	_last_value_extremes = perf_event_count(_value_extremes);
 
 	/* if automatic measurement is enabled */
 	if (_call_accel_interval > 0) {
@@ -1332,6 +1333,7 @@ LSM303D::measure()
             fabs(y_in_new) > 30 ||
             fabs(z_in_new) > 30) {
             perf_count(_value_extremes);
+    		_last_value_extremes++;
         }
 
 	accel_report.x = _accel_filter_x.apply(x_in_new);
@@ -1761,8 +1763,13 @@ guardian()
 	if (g_dev == nullptr)
 		errx(1, "driver not running\n");
 
-	while (!g_dev->has_failed())
-		usleep(50000);
+	while (!g_dev->has_failed()) {
+		usleep(1000);
+	}
+
+	g_dev->print_registers();
+	g_dev->print_info();
+	test();
 
 	errx(1, "sensor fail detected");
 }
