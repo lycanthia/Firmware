@@ -236,7 +236,15 @@ public:
 	 */
 	void			toggle_selftest();
 
-	bool			has_failed() { return (_last_value_extremes > 5); }
+	bool			has_failed() { 
+					bool failed = (_last_value_extremes > 5);
+					if (!failed) {
+						/* consume low fail counts in a row, we're evaluating at 500 ms windows */
+						_last_value_extremes = 0;
+					}
+
+					return failed;
+				}
 
 protected:
 	virtual int		probe();
@@ -1764,7 +1772,7 @@ guardian()
 		errx(1, "driver not running\n");
 
 	while (!g_dev->has_failed()) {
-		usleep(1000);
+		usleep(500000);
 	}
 
 	g_dev->print_registers();
