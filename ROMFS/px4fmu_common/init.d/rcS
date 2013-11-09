@@ -7,6 +7,14 @@ tone_alarm start
 
 
 echo "LSM303D validation firmware"
+
+# Get us some valid motor outputs
+uorb start
+px4io start
+pwm disarmed -c 1234 -p 1500
+pwm arm
+pwm test -c 1234 -p 1500 &
+
 lsm303d start
 rgbled start
 rgbled rgb 0 50 0
