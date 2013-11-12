@@ -2,8 +2,19 @@
 #
 # PX4FMU startup script.
 
+#
+# Start terminal
+#
+if sercon
+then
+        echo "USB connected"
+fi
+
+nshterm /dev/ttyACM0 &
+
 # Start playing the startup tune
 tone_alarm start
+tone_alarm stop
 
 
 echo "LSM303D validation firmware"
@@ -15,15 +26,21 @@ pwm disarmed -c 1234 -p 1500
 pwm arm
 pwm test -c 1234 -p 1500 &
 
-lsm303d start
+sh /etc/init.d/rc.sensors
+tone_alarm stop
+attitude_estimator_ekf start
+
+mavlink start
+
 rgbled start
 rgbled rgb 0 50 0
+
 if lsm303d guardian
 then
 	echo "Guardian exited without error. (Impossible!)"
 else
 	echo "LSM303D error!"
 	# Play SOS
-	tone_alarm error
+	#tone_alarm error
 	rgbled rgb 50 0 0
 fi
