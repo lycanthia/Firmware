@@ -22,9 +22,9 @@ echo "LSM303D validation firmware"
 # Get us some valid motor outputs
 uorb start
 px4io start
-pwm disarmed -c 1234 -p 1500
+pwm disarmed -c 1234 -p 900
 pwm arm
-pwm test -c 1234 -p 1500 &
+pwm test -c 1234 -p 900 &
 
 sh /etc/init.d/rc.sensors
 tone_alarm stop
@@ -41,6 +41,6 @@ then
 else
 	echo "LSM303D error!"
 	# Play SOS
-	#tone_alarm error
+	tone_alarm error
 	rgbled rgb 50 0 0
 fi
