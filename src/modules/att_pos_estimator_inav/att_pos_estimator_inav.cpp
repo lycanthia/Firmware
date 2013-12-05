@@ -84,7 +84,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
+extern "C" __EXPORT int att_pos_estimator_main(int argc, char *argv[]);
 
 class AttitudePositionEstimatorInav
 {
@@ -456,10 +456,10 @@ AttitudePositionEstimatorInav::start()
 	return OK;
 }
 
-int fw_pos_control_l1_main(int argc, char *argv[])
+int att_pos_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		errx(1, "usage: fw_pos_control_l1 {start|stop|status}");
+		errx(1, "usage: att_pos_estimator_inav {start|stop|status}");
 
 	if (!strcmp(argv[1], "start")) {
 
