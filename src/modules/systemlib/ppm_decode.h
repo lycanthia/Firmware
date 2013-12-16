@@ -44,7 +44,7 @@
 /**
  * Maximum number of channels that we will decode.
  */
-#define PPM_MAX_CHANNELS	12
+#define PPM_MAX_CHANNELS	26	/** larger than normal RC systems */
 
 /* PPM input nominal min/max values */
 #define PPM_MIN 1000
