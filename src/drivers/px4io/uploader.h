@@ -88,11 +88,11 @@ private:
 
 	int			recv(uint8_t &c, unsigned timeout);
 	int			recv(uint8_t *p, unsigned count);
-	void			drain();
+	void			drain(unsigned timeout);
 	int			send(uint8_t c);
 	int			send(uint8_t *p, unsigned count);
 	int			get_sync(unsigned timeout = 1000);
-	int			sync();
+	int			sync(unsigned timeout = 1000);
 	int			get_info(int param, uint32_t &val);
 	int			erase();
 	int			program(size_t fw_size);

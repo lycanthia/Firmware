@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file uploader.cpp
+ * @file px4io_uploader.cpp
  * Firmware uploader for PX4IO
  */
 
@@ -120,8 +120,12 @@ PX4IO_Uploader::upload(const char *filenames[])
 	cfsetspeed(&t, 115200);
 	tcsetattr(_io_fd, TCSANOW, &t);
 
-	/* look for the bootloader */
-	ret = sync();
+	/* look for the bootloader
+	 * the small recv timeout here is to allow for fast
+	 * drain when rebooting the io board for a forced
+	 * update of the fw without using the safety switch
+	 */
+	ret = sync(40);
 
 	if (ret != OK) {
 		/* this is immediately fatal */
@@ -268,16 +272,13 @@ PX4IO_Uploader::recv(uint8_t *p, unsigned count)
 }
 
 void
-PX4IO_Uploader::drain()
+PX4IO_Uploader::drain(unsigned timeout)
 {
 	uint8_t c;
 	int ret;
 
 	do {
-		// the small recv timeout here is to allow for fast
-		// drain when rebooting the io board for a forced
-		// update of the fw without using the safety switch
-		ret = recv(c, 40);
+		ret = recv(c, timeout);
 
 #ifdef UDEBUG
 		if (ret == OK) {
@@ -337,9 +338,9 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 }
 
 int
-PX4IO_Uploader::sync()
+PX4IO_Uploader::sync(unsigned timeout)
 {
-	drain();
+	drain(timeout);
 
 	/* complete any pending program operation */
 	for (unsigned i = 0; i < (PROG_MULTI_MAX + 6); i++)
