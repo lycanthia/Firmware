@@ -393,6 +393,11 @@ static void	hrt_ppm_decode(uint32_t status);
 static void
 hrt_tim_init(void)
 {
+	/* mark as invalid (timeout) */
+	ppm_last_valid_decode = 0;
+	/* no channels decoded */
+	ppm_decoded_channels = 0;
+
 	/* claim our interrupt vector */
 	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
 
@@ -458,7 +463,7 @@ hrt_ppm_decode(uint32_t status)
 	 * if this looks like a start pulse, then push the last set of values
 	 * and reset the state machine
 	 */
-	if (width >= PPM_MIN_START) {
+	if ((count - ppm.last_mark) >= PPM_MIN_START) {
 
 		/*
 		 * If the number of channels changes unexpectedly, we don't want
@@ -486,7 +491,7 @@ hrt_ppm_decode(uint32_t status)
 
 		} else {
 			/* frame channel count matches expected, let's use it */
-			if (ppm.next_channel > PPM_MIN_CHANNELS) {
+			if ((ppm.state == ACTIVE) && (ppm.next_channel > PPM_MIN_CHANNELS)) {
 				for (i = 0; i < ppm.next_channel; i++)
 					ppm_buffer[i] = ppm_temp_buffer[i];
 
@@ -520,6 +525,11 @@ hrt_ppm_decode(uint32_t status)
 		return;
 
 	case INACTIVE:
+
+		/* check edge length */
+		//if (width > PPM_MAX_PULSE_WIDTH)
+		//	goto error;
+
 		/* this edge is not interesting, but now we are ready for the next mark */
 		ppm.phase = ACTIVE;
 		return;
