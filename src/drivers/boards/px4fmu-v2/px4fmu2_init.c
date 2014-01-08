@@ -297,7 +297,7 @@ __EXPORT int nsh_archinitialize(void)
 	message("[boot] Successfully initialized SPI port 2\n");
 
 	/* Now bind the SPI interface to the MMCSD driver */
-	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi2);
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi2);
 
 	if (result != OK) {
 		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
@@ -333,8 +333,8 @@ __EXPORT int nsh_archinitialize(void)
 	// /* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
 	// sdio_mediachange(sdio, true);
 
-	message("[boot] Initialized SDIO\n");
-	#endif
+	message("[boot] Initialized SD\n");
+//	#endif
 
 	return OK;
 }
